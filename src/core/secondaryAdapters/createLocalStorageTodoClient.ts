@@ -1,6 +1,7 @@
-
 import type { TodoClient, Todo } from "../ports/TodoClient";
 import { assert } from "tsafe/assert";
+import { createRandomId } from "core/tools/createRandomId";
+import { flip } from "tsafe/flip";
 
 const localStorageKey = "todos";
 
@@ -18,7 +19,7 @@ export function createLocalStorageTodoClient(): TodoClient {
 			const todos = await todoClient.getTodos();
 
 			const todo: Todo = {
-				"id": 1,
+				"id": createRandomId(),
 				message,
 				"isCompleted": false,
 			};
@@ -37,12 +38,12 @@ export function createLocalStorageTodoClient(): TodoClient {
 			localStorage.setItem(localStorageKey, JSON.stringify(todosWithoutDeletedTodo));
 
 		},
-		"setTodoCompleted": async ({ id, isCompleted }) => {
+		"toggleTodoCompleted": async ({ id }) => {
 
 			const todos = await todoClient.getTodos();
 			const todo = todos.find(todo => todo.id === id);
 			assert(todo !== undefined);
-			todo.isCompleted = isCompleted;
+			flip(todo, "isCompleted");
 			localStorage.setItem(localStorageKey, JSON.stringify(todos));
 
 
