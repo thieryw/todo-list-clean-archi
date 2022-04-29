@@ -4,8 +4,9 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import type { State } from "../setup";
 import { createSelector } from "@reduxjs/toolkit";
 import type { Todo } from "../ports/TodoClient";
-import { createObjectThatThrowsIfAccessed } from "core/tools/createObjectThatThrowsIfAccessed";
+//import { createObjectThatThrowsIfAccessed } from "core/tools/createObjectThatThrowsIfAccessed";
 import { flip } from "tsafe/flip";
+import {id} from "tsafe/id";
 
 export type ManageTodosState = {
 	todos: Todo[];
@@ -13,7 +14,7 @@ export type ManageTodosState = {
 
 export const { reducer, actions, name } = createSlice({
 	"name": "manageTodos",
-	"initialState": createObjectThatThrowsIfAccessed<ManageTodosState>({ "debugMessage": "The slice was not properly initialized" }),
+	"initialState": id<ManageTodosState>({"todos": []}),
 	"reducers": {
 		"initialized": (_state, { payload }: PayloadAction<{ todos: Todo[]; }>) => {
 			const { todos } = payload;
@@ -78,7 +79,7 @@ export const thunks = {
 				});
 
 				todoClient.getTodos().then(todos => {
-					dispatch(actions.todoCreated({ "todo": todos[0] }))
+					dispatch(actions.todoCreated({ "todo": todos[todos.length - 1] }))
 				});
 
 			},
