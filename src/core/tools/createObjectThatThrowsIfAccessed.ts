@@ -55,7 +55,7 @@ export function isPropertyAccessedByReduxOrStorybook(prop: string | number | sym
 export function createPropertyThatThrowIfAccessed<
     T extends object,
     PropertyName extends keyof T,
->(propertyName: PropertyName, debugMessage?: string): { [K in PropertyName]: T[K] } {
+>(propertyName: PropertyName, debugMessage?: string)/*: { [K in PropertyName]: T[K] }*/ {
     const getAndSet = () => {
         throw new Error(`Cannot access ${propertyName} yet ${debugMessage ?? ""}`);
     };
