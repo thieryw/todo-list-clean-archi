@@ -1,31 +1,65 @@
-
-import { memo, useMemo } from "react";
-import { selectors, useSelector, useThunks } from "ui/coreApi";
+import { memo, useState } from "react";
+import {  useSelector, useThunks } from "ui/coreApi";
+import { useConstCallback } from "powerhooks/useConstCallback";
+import { Task } from "./Task";
+import { makeStyles } from "../theme";
 
 export const App = memo(
-	()=>{
+	() => {
 
-		const todos = useSelector(state=> state.manageTodos.todos);
+		const [textValue, setTextValue] = useState("");
 
-		const { percentageOfTodosCompleted } = useSelector(selectors.manageTodos.percentageOfTodosCompleted);
-		const { todoCount } = useSelector(selectors.manageTodos.todoCount);
+		const todos = useSelector(state => state.manageTodos.todos);
 
 		const { manageTodosThunks } = useThunks();
 
-		//manageTodosThunks.deleteTodo({ "todoId": 33 });
+		const handleTextValueChange = useConstCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+			setTextValue(e.target.value);
+		})
 
-		const maxTodo = useMemo(()=> manageTodosThunks.getMaxTodo(), [manageTodosThunks]);
+		const handleSubmit = useConstCallback((e: React.FormEvent<HTMLFormElement>) => {
+			e.preventDefault();
+			manageTodosThunks.createTodo({
+				"message": textValue
+			});
+
+			setTextValue("");
+
+		})
+
+		const { classes } = useStyles();
 
 		return (
-			<div>
-				{maxTodo}
-				{
-				todos.map(todo=>
-					<div>{JSON.stringify(todo)}</div>
-				)
-				}</div>
+			<div className={classes.root}>
+				<h1>Todo List with Redux Clean Architecture and local storage</h1>
+				<div className={classes.form}>
+					<form onSubmit={handleSubmit}>
+						<input type="text" value={textValue} onChange={handleTextValueChange} />
+					</form>
+				</div>
+
+				<div>
+					{
+						todos.map(todo =>
+							<Task key={todo.id} {...todo} />
+						).reverse()
+					}
+				</div>
+			</div>
 		);
-
-
 	}
 );
+
+const useStyles = makeStyles()({
+	"root": {
+		"display": "flex",
+		"flexDirection": "column",
+		"justifyContent": "center",
+		"alignItems": "center"
+	},
+	"form": {
+		"marginBottom": 30
+	}
+})
+
+
