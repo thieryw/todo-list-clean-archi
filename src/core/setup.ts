@@ -6,7 +6,7 @@ import type { TodoClient } from "./ports/TodoClient";
 import { createLocalStorageTodoClient } from "./secondaryAdapters/createLocalStorageTodoClient";
 import { usecasesToReducer } from "redux-clean-architecture";
 
-import * as manageDodoUsecase from "./usecases/manageDodos";
+import * as manageDodoUsecase from "./usecases/manageTodos";
 
 export const usecases = [manageDodoUsecase];
 
