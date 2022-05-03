@@ -10,10 +10,9 @@ export function createRestApiTodoClient(): TodoClient {
 	const todoClient: TodoClient = {
 		"getTodos": async () => {
 
-			return await fetch(url, {
+			return await fetch(`${url}`, {
 				"method": "GET",
 			}).then(res => res.json());
-
 
 		},
 		"createTodo": async ({ message }) => {
@@ -26,6 +25,9 @@ export function createRestApiTodoClient(): TodoClient {
 
 			await fetch(url, {
 				"method": "POST",
+				"headers": {
+					"Content-Type": "application/json"
+				},
 				"body": JSON.stringify(out)
 			});
 
@@ -36,19 +38,27 @@ export function createRestApiTodoClient(): TodoClient {
 			console.log(`${url}/${id}`)
 			fetch(`${url}/${id}`, {
 				"method": "DELETE",
+				"headers": {
+				   "Content-Type": "application/json"
+				}
 			})
 		},
 		"toggleTodoCompleted": async ({ id }) => {
-			todoClient.getTodos().then(todos => {
-				const todo = todos.find(todo => todo.id = id);
-				assert(todo !== undefined);
-				flip(todo, "isCompleted");
+			const todo = (
+				(await todoClient.getTodos()) as Todo[]
+			).find(todo => todo.id === id);
 
-				fetch(`${url}/${id}`, {
-					"method": "PUT",
-					"body": JSON.stringify(todo),
-				}).then(() => console.log("ok"))
-			});
+			assert(todo !== undefined);
+			flip(todo, "isCompleted");
+
+			await fetch(`${url}/${id}`, {
+				"method": "PUT",
+				"headers": {
+					  'Content-Type': 'application/json',
+				},
+				"body": JSON.stringify(todo)
+			})
+
 		}
 	}
 
