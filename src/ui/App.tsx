@@ -3,15 +3,16 @@ import {  useSelector, useThunks } from "ui/coreApi";
 import { useConstCallback } from "powerhooks/useConstCallback";
 import { Task } from "./Task";
 import { makeStyles } from "../theme";
+import { CommandBar } from "./CommandBar";
 
 export const App = memo(
 	() => {
 
 		const [textValue, setTextValue] = useState("");
 
-		const todos = useSelector(state => state.manageTodos.todos);
+		const todos = useSelector(state => state.manageTasks.tasks);
 
-		const { manageTodosThunks } = useThunks();
+		const { manageTasksThunks } = useThunks();
 
 		const handleTextValueChange = useConstCallback((e: React.ChangeEvent<HTMLInputElement>) => {
 			setTextValue(e.target.value);
@@ -19,7 +20,7 @@ export const App = memo(
 
 		const handleSubmit = useConstCallback((e: React.FormEvent<HTMLFormElement>) => {
 			e.preventDefault();
-			manageTodosThunks.createTodo({
+			manageTasksThunks.createTask({
 				"message": textValue
 			});
 
@@ -37,6 +38,7 @@ export const App = memo(
 						<input type="text" value={textValue} onChange={handleTextValueChange} />
 					</form>
 				</div>
+				<CommandBar />
 
 				<div>
 					{
