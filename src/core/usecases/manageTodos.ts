@@ -3,49 +3,73 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import type { State } from "../setup";
 import { createSelector } from "@reduxjs/toolkit";
-import type { Todo } from "../ports/TodoClient";
+import type { Task } from "../ports/TodoListClient";
 //import { createObjectThatThrowsIfAccessed } from "core/tools/createObjectThatThrowsIfAccessed";
 import { flip } from "tsafe/flip";
 import { id } from "tsafe/id";
 
 export type ManageTodosState = {
-	todos: Todo[];
+	tasks: Task[];
 };
 
 export const { reducer, actions, name } = createSlice({
-	"name": "manageTodos",
-	"initialState": id<ManageTodosState>({ "todos": [] }),
+	"name": "manageTasks",
+	"initialState": id<ManageTodosState>({ "tasks": [] }),
 	"reducers": {
-		"initialized": (_state, { payload }: PayloadAction<{ todos: Todo[]; }>) => {
-			const { todos } = payload;
-			return { todos };
+		"initialized": (_state, { payload }: PayloadAction<{ tasks: Task[]; }>) => {
+			const { tasks } = payload;
+			return { tasks };
 		},
-		"todoDeleted": (state, { payload }: PayloadAction<{ id: number; }>) => {
-			const { id: todoId } = payload;
+		"taskDeleted": (state, { payload }: PayloadAction<{ id: number; }>) => {
+			const { id: taskId } = payload;
 
-			state.todos = state.todos.filter(todo => todo.id !== todoId);
+			state.tasks = state.tasks.filter(task => task.id !== taskId);
 
 		},
-		"todoCreated": (state, { payload }: PayloadAction<{ todo: Todo }>) => {
-			const { todo } = payload;
-			state.todos.push({
-				...todo
+		"taskCreated": (state, { payload }: PayloadAction<{ task: Task }>) => {
+			const { task } = payload;
+			state.tasks.push({
+				...task
 			})
 		},
-		"todoCompletedToggled": (state, { payload }: PayloadAction<{ id: number }>) => {
-			const { id: todoId } = payload;
+		"taskCompletedToggled": (state, { payload }: PayloadAction<{ id: number }>) => {
+			const { id: taskId } = payload;
 
-			const index = state.todos.findIndex(({ id }) => todoId === id);
+			const index = state.tasks.findIndex(({ id }) => taskId === id);
 
-			flip(state.todos[index], "isCompleted")
+			flip(state.tasks[index], "isCompleted")
 
 		},
-		"todoSelectedToggled": (state, { payload }: PayloadAction<{ id: number }>) => {
-			const { id: todoId } = payload;
+		"taskSelectedToggled": (state, { payload }: PayloadAction<{ id: number }>) => {
+			const { id: taskId } = payload;
 			flip(
-				state.todos[state.todos.findIndex(({ id }) => todoId === id)],
+				state.tasks[state.tasks.findIndex(({ id }) => taskId === id)],
 				"isSelected"
 			)
+		},
+		"tasksDeleted": (state, { payload }: PayloadAction<{ remainingTasks: Task[] }>) => {
+			const { remainingTasks } = payload;
+			state.tasks = remainingTasks;
+		},
+		"tasksCompleted": ({ tasks }) => {
+			tasks.filter(task => task.isSelected).forEach(task => {
+				task.isCompleted = true;
+			});
+		},
+		"tasksUnCompleted": ({ tasks }) => {
+			tasks.filter(task => task.isSelected).forEach(task => {
+				task.isCompleted = false;
+			});
+		},
+		"tasksSelected": ({tasks}) => {
+			tasks.filter( task => !task.isSelected).forEach(task => {
+				task.isSelected = true;
+			})
+		},
+		"tasksUnSelected": ({tasks}) => {
+			tasks.filter( task => task.isSelected).forEach(task => {
+				task.isSelected = false;
+			})
 		}
 
 	},
@@ -58,58 +82,89 @@ export const privateThunks = {
 
 				const [dispatch, , { todoClient }] = args;
 
-				const todos = await todoClient.getTodos();
+				const tasks = await todoClient.getTasks();
 
-				dispatch(actions.initialized({ todos }));
+				dispatch(actions.initialized({ tasks }));
 
 			}
 };
 
 export const thunks = {
-	"deleteTodo":
+	"deleteTask":
 		(params: { id: number; }): ThunkAction =>
 			async (...args) => {
 
 				const { id } = params;
 
 				const [dispatch, , { todoClient }] = args;
-				await todoClient.deleteTodo({ id });
-				dispatch(actions.todoDeleted({ id }));
+				await todoClient.deleteTask({ id });
+				dispatch(actions.taskDeleted({ id }));
 
 			},
-	"createTodo":
+	"createTask":
 		(params: { message: string; }): ThunkAction =>
 			async (...args) => {
 				const { message } = params;
 				const [dispatch, , { todoClient }] = args;
-				await todoClient.createTodo({
+				await todoClient.createTask({
 					message
 				});
 
-				todoClient.getTodos().then(todos => {
-					dispatch(actions.todoCreated({ "todo": todos[todos.length - 1] }))
+				todoClient.getTasks().then(tasks => {
+					dispatch(actions.taskCreated({ "task": tasks[tasks.length - 1] }))
 				});
 
 			},
-	"toggleTodoIsCompleted":
+	"toggleTaskCompleted":
 		(params: { id: number; }): ThunkAction =>
 			async (...args) => {
 
 				const { id } = params;
 				const [dispatch, , { todoClient }] = args;
 
-				await todoClient.toggleTodoCompleted({ id });
+				await todoClient.toggleTaskCompleted({ id });
 
-				dispatch(actions.todoCompletedToggled({ id }))
+				dispatch(actions.taskCompletedToggled({ id }))
 			},
-	"toggleTodoSelected": (params: { id: number }): ThunkAction =>
+	"toggleTaskSelected": (params: { id: number }): ThunkAction =>
 		async (...args) => {
 			const { id } = params;
 			const [dispatch, , { todoClient }] = args;
 
-			await todoClient.toggleTodoSelected({ id });
-			dispatch(actions.todoSelectedToggled({ id }));
+			await todoClient.toggleTaskSelected({ id });
+			dispatch(actions.taskSelectedToggled({ id }));
 
+		},
+	"deleteSelectedTasks": (): ThunkAction =>
+		async (...args) => {
+			const [dispatch, , { todoClient }] = args;
+			dispatch(actions.tasksDeleted({
+				"remainingTasks": await todoClient.deleteSelectedTasks()
+			}));
+		},
+	"completeSelectedTasks": (): ThunkAction =>
+		async (...args) => {
+			const [dispatch, , { todoClient }] = args;
+			await todoClient.completeSelectedTasks();
+			dispatch(actions.tasksCompleted());
+		},
+	"unCompleteSelectedTasks": (): ThunkAction =>
+		async (...args) => {
+			const [dispatch, , { todoClient }] = args;
+			await todoClient.unCompleteSelectedTasks();
+			dispatch(actions.tasksUnCompleted());
+		},
+	"selectAllTasks": (): ThunkAction => 
+		async (...args) => {
+			const [dispatch, , {todoClient}] = args;
+			await todoClient.selectAll();
+			dispatch(actions.tasksSelected());
+		},
+	"unSelectAllTasks": (): ThunkAction =>
+		async (...args) => {
+			const [dispatch, , { todoClient }] = args;
+			await todoClient.unSelectAll();
+			dispatch(actions.tasksUnSelected());
 		}
 	/*"getMaxTodo":
 		(): ThunkAction<number> =>
@@ -127,32 +182,33 @@ export const thunks = {
 };
 
 export const selectors = (() => {
-	const todoCount = (state: State) => {
-		const { todos } = state.manageTodos;
+	const taskCount = (state: State) => {
+		const { tasks: todos } = state.manageTasks;
 		return todos.length;
 	};
 
-	const completedTodoCount = (state: State) => {
-		const { todos } = state.manageTodos;
-		return todos.filter(todo => todo.isCompleted).length;
+	const completedTaskCount = (state: State) => {
+		const { tasks } = state.manageTasks;
+		return tasks.filter(task => task.isCompleted).length;
 	};
 
-	const selectedTodoCount = (state: State) => {
-		const { todos } = state.manageTodos;
-		return todos.filter(todo => todo.isSelected).length;
+	const selectedTaskCount = (state: State) => {
+		const { tasks } = state.manageTasks;
+		return tasks.filter(task => task.isSelected).length;
 	}
 
-	const percentageOfTodosCompleted = createSelector(
-		todoCount,
-		completedTodoCount,
-		(todoCount, completedTodoCount) => (todoCount / completedTodoCount) * 100
+	const percentageOfTasksCompleted = createSelector(
+		taskCount,
+		completedTaskCount,
+		selectedTaskCount,
+		(taskCount, completedTaskCount) => (taskCount / completedTaskCount) * 100
 	);
 
 	return {
-		todoCount,
-		completedTodoCount,
-		selectedTodoCount,
-		percentageOfTodosCompleted,
+		taskCount,
+		completedTaskCount,
+		selectedTaskCount,
+		percentageOfTasksCompleted,
 	};
 })();
 
