@@ -6,7 +6,7 @@ import { createSelector } from "@reduxjs/toolkit";
 import type { Todo } from "../ports/TodoClient";
 //import { createObjectThatThrowsIfAccessed } from "core/tools/createObjectThatThrowsIfAccessed";
 import { flip } from "tsafe/flip";
-import {id} from "tsafe/id";
+import { id } from "tsafe/id";
 
 export type ManageTodosState = {
 	todos: Todo[];
@@ -14,14 +14,14 @@ export type ManageTodosState = {
 
 export const { reducer, actions, name } = createSlice({
 	"name": "manageTodos",
-	"initialState": id<ManageTodosState>({"todos": []}),
+	"initialState": id<ManageTodosState>({ "todos": [] }),
 	"reducers": {
 		"initialized": (_state, { payload }: PayloadAction<{ todos: Todo[]; }>) => {
 			const { todos } = payload;
 			return { todos };
 		},
-		"todoDeleted": (state, { payload }: PayloadAction<{ todoId: string; }>) => {
-			const { todoId } = payload;
+		"todoDeleted": (state, { payload }: PayloadAction<{ id: number; }>) => {
+			const { id: todoId } = payload;
 
 			state.todos = state.todos.filter(todo => todo.id !== todoId);
 
@@ -32,14 +32,22 @@ export const { reducer, actions, name } = createSlice({
 				...todo
 			})
 		},
-		"todoCompletedToggled": (state, { payload }: PayloadAction<{ todoId: string }>) => {
-			const { todoId } = payload;
+		"todoCompletedToggled": (state, { payload }: PayloadAction<{ id: number }>) => {
+			const { id: todoId } = payload;
 
 			const index = state.todos.findIndex(({ id }) => todoId === id);
 
 			flip(state.todos[index], "isCompleted")
 
+		},
+		"todoSelectedToggled": (state, { payload }: PayloadAction<{ id: number }>) => {
+			const { id: todoId } = payload;
+			flip(
+				state.todos[state.todos.findIndex(({ id }) => todoId === id)],
+				"isSelected"
+			)
 		}
+
 	},
 });
 
@@ -59,14 +67,14 @@ export const privateThunks = {
 
 export const thunks = {
 	"deleteTodo":
-		(params: { todoId: string; }): ThunkAction =>
+		(params: { id: number; }): ThunkAction =>
 			async (...args) => {
 
-				const { todoId } = params;
+				const { id } = params;
 
 				const [dispatch, , { todoClient }] = args;
-				await todoClient.deleteTodo({ "id": todoId });
-				dispatch(actions.todoDeleted({ todoId }));
+				await todoClient.deleteTodo({ id });
+				dispatch(actions.todoDeleted({ id }));
 
 			},
 	"createTodo":
@@ -84,16 +92,25 @@ export const thunks = {
 
 			},
 	"toggleTodoIsCompleted":
-		(params: { todoId: string; }): ThunkAction =>
+		(params: { id: number; }): ThunkAction =>
 			async (...args) => {
 
-				const { todoId } = params;
+				const { id } = params;
 				const [dispatch, , { todoClient }] = args;
 
-				await todoClient.toggleTodoCompleted({ "id": todoId });
+				await todoClient.toggleTodoCompleted({ id });
 
-				dispatch(actions.todoCompletedToggled({ todoId }))
-			}
+				dispatch(actions.todoCompletedToggled({ id }))
+			},
+	"toggleTodoSelected": (params: { id: number }): ThunkAction =>
+		async (...args) => {
+			const { id } = params;
+			const [dispatch, , { todoClient }] = args;
+
+			await todoClient.toggleTodoSelected({ id });
+			dispatch(actions.todoSelectedToggled({ id }));
+
+		}
 	/*"getMaxTodo":
 		(): ThunkAction<number> =>
 			(...args) => {
@@ -120,6 +137,11 @@ export const selectors = (() => {
 		return todos.filter(todo => todo.isCompleted).length;
 	};
 
+	const selectedTodoCount = (state: State) => {
+		const { todos } = state.manageTodos;
+		return todos.filter(todo => todo.isSelected).length;
+	}
+
 	const percentageOfTodosCompleted = createSelector(
 		todoCount,
 		completedTodoCount,
@@ -129,7 +151,8 @@ export const selectors = (() => {
 	return {
 		todoCount,
 		completedTodoCount,
-		percentageOfTodosCompleted
+		selectedTodoCount,
+		percentageOfTodosCompleted,
 	};
 })();
 

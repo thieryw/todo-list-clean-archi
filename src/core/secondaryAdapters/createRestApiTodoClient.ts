@@ -1,7 +1,7 @@
 import type { TodoClient, Todo } from "../ports/TodoClient";
-import { createRandomId } from "../tools/createRandomId";
 import { assert } from "tsafe/assert";
 import { flip } from "tsafe/flip";
+import { createTaskFlipBooleanValue } from "../ports/TodoClient";
 
 const url = "http://williamthiery99.ddns.net";
 
@@ -17,10 +17,10 @@ export function createRestApiTodoClient(): TodoClient {
 		},
 		"createTodo": async ({ message }) => {
 
-			const out: Todo = {
+			const out: Omit<Todo, "id"> = {
 				message,
-				"id": createRandomId(),
-				"isCompleted": false
+				"isCompleted": false,
+				"isSelected": false
 			};
 
 			await fetch(url, {
@@ -31,37 +31,47 @@ export function createRestApiTodoClient(): TodoClient {
 				"body": JSON.stringify(out)
 			});
 
-			return out;
+			return (await todoClient.getTodos())[0];
 
 		},
 		"deleteTodo": async ({ id }) => {
-			console.log(`${url}/${id}`)
 			fetch(`${url}/${id}`, {
 				"method": "DELETE",
 				"headers": {
-				   "Content-Type": "application/json"
+					"Content-Type": "application/json"
 				}
 			})
 		},
 		"toggleTodoCompleted": async ({ id }) => {
-			const todo = (
+			taskFlipBooleanValue({
+				id,
+				"valueToFlip": "isCompleted"
+			});
+		},
+		"toggleTodoSelected": async ({ id }) => {
+			taskFlipBooleanValue({
+				id,
+				"valueToFlip": "isSelected"
+			});
+		},
+	};
+
+	const { taskFlipBooleanValue } = createTaskFlipBooleanValue({
+		"action": async ({ id, valueToFlip }) => {
+			const task = (
 				(await todoClient.getTodos()) as Todo[]
 			).find(todo => todo.id === id);
-
-			assert(todo !== undefined);
-			flip(todo, "isCompleted");
-
-			await fetch(`${url}/${id}`, {
+			assert(task !== undefined);
+			flip(task, valueToFlip);
+			await fetch(url, {
 				"method": "PUT",
 				"headers": {
-					  'Content-Type': 'application/json',
+					'Content-Type': 'application/json',
 				},
-				"body": JSON.stringify(todo)
+				"body": JSON.stringify(task)
 			})
-
 		}
-	}
-
+	});
 
 	return todoClient;
 }
