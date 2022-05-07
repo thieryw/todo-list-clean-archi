@@ -1,23 +1,23 @@
-import type { TodoClient, Todo } from "../ports/TodoClient";
+import type { TodoListClient, Task } from "../ports/TodoListClient";
 import { assert } from "tsafe/assert";
 import { flip } from "tsafe/flip";
-import { createTaskFlipBooleanValue } from "../ports/TodoClient";
+import { createTaskFlipBooleanValue } from "../ports/TodoListClient";
 
 const url = "http://williamthiery99.ddns.net";
 
-export function createRestApiTodoClient(): TodoClient {
+export function createRestApiTodoClient(): TodoListClient {
 
-	const todoClient: TodoClient = {
-		"getTodos": async () => {
+	const todoClient: TodoListClient = {
+		"getTasks": async () => {
 
 			return await fetch(`${url}`, {
 				"method": "GET",
 			}).then(res => res.json());
 
 		},
-		"createTodo": async ({ message }) => {
+		"createTask": async ({ message }) => {
 
-			const out: Omit<Todo, "id"> = {
+			const out: Omit<Task, "id"> = {
 				message,
 				"isCompleted": false,
 				"isSelected": false
@@ -31,35 +31,56 @@ export function createRestApiTodoClient(): TodoClient {
 				"body": JSON.stringify(out)
 			});
 
-			return (await todoClient.getTodos())[0];
+			return (await todoClient.getTasks())[0];
 
 		},
-		"deleteTodo": async ({ id }) => {
-			fetch(`${url}/${id}`, {
+		"deleteTask": ({ id }) => {
+			fetch(`${url}/${id}`, { 
 				"method": "DELETE",
 				"headers": {
 					"Content-Type": "application/json"
 				}
-			})
+			});
+
+			return Promise.resolve();
 		},
-		"toggleTodoCompleted": async ({ id }) => {
+		"toggleTaskCompleted": ({ id }) => {
 			taskFlipBooleanValue({
 				id,
 				"valueToFlip": "isCompleted"
 			});
+
+			return Promise.resolve();
 		},
-		"toggleTodoSelected": async ({ id }) => {
+		"toggleTaskSelected": ({ id }) => {
 			taskFlipBooleanValue({
 				id,
 				"valueToFlip": "isSelected"
 			});
+
+			return Promise.resolve();
 		},
+		"completeSelectedTasks": async () => {
+
+		},
+		"unCompleteSelectedTasks": async () => {
+
+		},
+		"deleteSelectedTasks": async () => {
+			return null as any;
+			
+		},
+		"selectAll": async () => {
+		},
+		"unSelectAll": async () => {
+
+		}
 	};
 
 	const { taskFlipBooleanValue } = createTaskFlipBooleanValue({
 		"action": async ({ id, valueToFlip }) => {
 			const task = (
-				(await todoClient.getTodos()) as Todo[]
+				(await todoClient.getTasks()) as Task[]
 			).find(todo => todo.id === id);
 			assert(task !== undefined);
 			flip(task, valueToFlip);
