@@ -1,26 +1,27 @@
 import { memo } from "react";
-import type { Todo } from "../core/ports/TodoClient";
+import type { Task as TaskType } from "../core/ports/TodoListClient";
 import { useThunks } from "ui/coreApi";
 import { makeStyles } from "../theme";
 import { useConstCallback } from "powerhooks/useConstCallback";
 //import * as runEx from "run-exclusive";
 
 
-export const Task = memo((props: Todo) => {
+export const Task = memo((props: TaskType) => {
 	const { id, isCompleted, message, isSelected } = props;
-	const { manageTodosThunks } = useThunks();
+	const { manageTasksThunks } = useThunks();
 
 	const toggleIsCompleted = useConstCallback((e: React.MouseEvent<HTMLInputElement, MouseEvent>)=>{
 			e.stopPropagation();
-			manageTodosThunks.toggleTodoIsCompleted({ id })
+			manageTasksThunks.toggleTaskCompleted({ id })
 	});
 
 	const toggleIsTaskSelected = useConstCallback(()=>{
-		manageTodosThunks.toggleTodoSelected({id});
+		manageTasksThunks.toggleTaskSelected({id});
 	});
 
-	const deleteTask = useConstCallback(() => {
-		manageTodosThunks.deleteTodo({ id });
+	const deleteTask = useConstCallback((e: React.MouseEvent<HTMLHeadingElement, MouseEvent>) => {
+		e.stopPropagation();
+		manageTasksThunks.deleteTask({ id });
 	});
 
 	const { classes } = useStyles({
@@ -28,7 +29,7 @@ export const Task = memo((props: Todo) => {
 		isSelected
 	});
 	return <div onClick={toggleIsTaskSelected} className={classes.root}>
-		<input onClick={toggleIsCompleted} defaultChecked={isCompleted} type="checkbox" />
+		<input readOnly={true} onClick={toggleIsCompleted} checked={isCompleted} type="checkbox" />
 		<p className={classes.message}>{message}</p>
 		<h2 className={classes.deleteButton} onClick={deleteTask}>X</h2>
 	</div>
