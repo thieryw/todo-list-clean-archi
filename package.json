@@ -14,6 +14,7 @@
     "react-redux": "^7.2.6",
     "react-scripts": "5.0.0",
     "redux-clean-architecture": "^1.2.2",
+    "run-exclusive": "^2.2.14",
     "tsafe": "^0.9.1",
     "tss-react": "^3.6.2",
     "web-vitals": "^2.1.4"
