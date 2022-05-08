@@ -44,53 +44,101 @@ export function createRestApiTodoClient(): TodoListClient {
 
 			return Promise.resolve();
 		},
-		"toggleTaskCompleted": ({ id }) => {
+		"toggleTaskCompleted": async ({ id }) => {
+
+
 			taskFlipBooleanValue({
-				id,
+				"tasks": [
+					(await todoClient.getTasks())
+						.find(task => task.id === id) as Task
+				],
 				"valueToFlip": "isCompleted"
 			});
 
-			return Promise.resolve();
 		},
-		"toggleTaskSelected": ({ id }) => {
+		"toggleTaskSelected": async ({ id }) => {
 			taskFlipBooleanValue({
-				id,
+				"tasks": [
+					(await todoClient.getTasks())
+						.find(task => task.id === id) as Task
+				],
 				"valueToFlip": "isSelected"
 			});
-
-			return Promise.resolve();
 		},
 		"completeSelectedTasks": async () => {
+			const unCompleteSelectedTasks = (await todoClient.getTasks())
+				.filter(task => task.isSelected && !task.isCompleted)
 
+				taskFlipBooleanValue({
+					"tasks": unCompleteSelectedTasks,
+					"valueToFlip": "isCompleted"
+				})
 		},
 		"unCompleteSelectedTasks": async () => {
+			const completeSelectedTasks = (await todoClient.getTasks())
+				.filter(task => task.isSelected && task.isCompleted);
 
+				taskFlipBooleanValue({
+					"tasks": completeSelectedTasks,
+					"valueToFlip": "isCompleted"
+				})
 		},
 		"deleteSelectedTasks": async () => {
-			return null as any;
-			
+			const deletedTasks = (await todoClient.getTasks())
+				.filter(task => task.isSelected);
+
+			for(const task of deletedTasks){
+				await fetch(`${url}/${task.id}`, {
+					"method": "DELETE",
+					"headers": {
+						"Content-Type": "application/json"
+					}
+				})
+			};
+
+			return await todoClient.getTasks();
+
 		},
 		"selectAll": async () => {
+			const unSelectedTasks = (await todoClient.getTasks())
+				.filter(task => !task.isSelected)
+			
+				taskFlipBooleanValue({
+					"tasks": unSelectedTasks,
+					"valueToFlip": "isSelected"
+				});
 		},
 		"unSelectAll": async () => {
-
+			const selectedTasks = (await todoClient.getTasks())
+				.filter(task => task.isSelected)
+			
+				taskFlipBooleanValue({
+					"tasks": selectedTasks,
+					"valueToFlip": "isSelected"
+				})
 		}
 	};
 
 	const { taskFlipBooleanValue } = createTaskFlipBooleanValue({
-		"action": async ({ id, valueToFlip }) => {
-			const task = (
-				(await todoClient.getTasks()) as Task[]
-			).find(todo => todo.id === id);
-			assert(task !== undefined);
-			flip(task, valueToFlip);
-			await fetch(url, {
-				"method": "PUT",
-				"headers": {
-					'Content-Type': 'application/json',
-				},
-				"body": JSON.stringify(task)
-			})
+		"action": ({ tasks, valueToFlip }) => {
+
+			if(tasks.length === 1){
+				assert(tasks[0] !== undefined);
+			}
+
+			tasks.forEach(async task => {
+				flip(task, valueToFlip);
+				await fetch(url, {
+					"method": "PUT",
+					"headers": {
+						'Content-Type': 'application/json',
+					},
+					"body": JSON.stringify(task)
+				})
+			});
+
+			return Promise.resolve();
+
 		}
 	});
 
