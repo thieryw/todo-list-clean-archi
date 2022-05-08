@@ -21,7 +21,7 @@ export type TodoListClient = {
 
 export function createTaskFlipBooleanValue<
 	T extends {
-		id: number;
+		tasks: Task[];
 		valueToFlip: {
 			[Key in keyof Task]: Task[Key] extends boolean ? Key : never
 		}[keyof Task]
