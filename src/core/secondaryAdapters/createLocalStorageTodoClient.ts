@@ -39,28 +39,33 @@ export function createLocalStorageTodoClient(): TodoListClient {
 			localStorage.setItem(localStorageKey, JSON.stringify(todosWithoutDeletedTodo));
 
 		},
-		"toggleTaskCompleted":({ id }) => {
+		"toggleTaskCompleted": async ({ id }) => {
 			taskFlipBooleanValue({
-				id,
+				"tasks": [
+					(await todoClient.getTasks())
+						.find(task => task.id === id) as Task
+				],
 				"valueToFlip": "isCompleted"
 			});
 
-			return Promise.resolve();
 		},
-		"toggleTaskSelected": ({ id }) => {
+		"toggleTaskSelected": async ({ id }) => {
 			taskFlipBooleanValue({
-				id, 
+				"tasks": [
+					(await todoClient.getTasks())
+						.find(task => task.id === id) as Task
+				], 
 				"valueToFlip": "isSelected"
 			});
 
-			return Promise.resolve();
 		},
-		"completeSelectedTasks": () => {
-			setTasksCompleteness({
-				"areCompleted": true
-			});
-
-			return Promise.resolve();
+		"completeSelectedTasks": async () => {
+			taskFlipBooleanValue({
+				"tasks": (await todoClient.getTasks())
+					.filter(({isCompleted, isSelected}) => isSelected && !isCompleted)
+				,
+				"valueToFlip": "isCompleted"
+			})
 		},
 		"deleteSelectedTasks": async () => {
 			console.log(await todoClient.getTasks());
@@ -69,65 +74,43 @@ export function createLocalStorageTodoClient(): TodoListClient {
 			localStorage.setItem(localStorageKey, JSON.stringify(tasks))
 			return tasks;
 		},
-		"unCompleteSelectedTasks": () => {
-			setTasksCompleteness({
-				"areCompleted": false
-			});
-
-			return Promise.resolve();
+		"unCompleteSelectedTasks": async () => {
+			taskFlipBooleanValue({
+				"tasks": (await todoClient.getTasks())
+					.filter(({isCompleted, isSelected}) => isCompleted && isSelected)
+				,
+				"valueToFlip": "isCompleted"
+			})
 		},
-		"selectAll": () => {
-			setTasksSelected({
-				"areSelected": true
-			});
-
-			return Promise.resolve();
+		"selectAll": async () => {
+			taskFlipBooleanValue({
+				"tasks": (await todoClient.getTasks())
+					.filter(task => !task.isSelected)
+				,
+				"valueToFlip": "isSelected"
+			})
 		},
-		"unSelectAll": () => {
-			setTasksSelected({
-				"areSelected": false
-			});
-
-			return Promise.resolve();
+		"unSelectAll": async () => {
+			taskFlipBooleanValue({
+				"tasks": (await todoClient.getTasks())
+					.filter(task => task.isSelected)
+				,
+				"valueToFlip": "isSelected"
+			})
 		}
 	};
 
-	async function setTasksSelected(params: {
-		areSelected: boolean;
-	}) {
-		const { areSelected } = params;
-		const tasks = await todoClient.getTasks();
-		tasks.forEach(task => {
-			if (task.isSelected === areSelected) {
-				return;
-			}
-			task.isSelected = areSelected;
-		})
-		localStorage.setItem(localStorageKey, JSON.stringify(tasks));
-	};
-
-	async function setTasksCompleteness(params: {
-		areCompleted: boolean;
-	}) {
-
-		const { areCompleted } = params;
-		const tasks = await todoClient.getTasks();
-		tasks.filter(task => task.isSelected).forEach(task => {
-			if (task.isCompleted === areCompleted) {
-				return;
-			}
-			task.isCompleted = areCompleted
-		});
-		localStorage.setItem(localStorageKey, JSON.stringify(tasks));
-	}
-
 	const { taskFlipBooleanValue } = createTaskFlipBooleanValue({
-		"action": async ({ id, valueToFlip }) => {
-			const todos = await todoClient.getTasks();
-			const todo = todos.find(todo => todo.id === id);
-			assert(todo !== undefined);
-			flip(todo, valueToFlip);
-			localStorage.setItem(localStorageKey, JSON.stringify(todos));
+		"action": ({ tasks, valueToFlip }) => {
+			if(tasks.length === 1){
+				assert(tasks[0] !== undefined)
+			}
+			tasks.forEach(task => {
+				flip(task, valueToFlip);
+			});
+
+			localStorage.setItem(localStorageKey, JSON.stringify(tasks));
+			return Promise.resolve();
 		}
 	})
 
