@@ -3,9 +3,9 @@ import type { Action, ThunkAction as GenericThunkAction } from "@reduxjs/toolkit
 import { configureStore } from "@reduxjs/toolkit";
 import { id } from "tsafe/id";
 import type { TodoListClient } from "./ports/TodoListClient";
-import { createLocalStorageTodoClient } from "./secondaryAdapters/createLocalStorageTodoClient";
+//import { createLocalStorageTodoClient } from "./secondaryAdapters/createLocalStorageTodoClient";
 import { usecasesToReducer } from "redux-clean-architecture";
-//import { createRestApiTodoClient } from "./secondaryAdapters/createRestApiTodoClient";
+import { createRestApiTodoClient } from "./secondaryAdapters/createRestApiTodoClient";
 
 import * as manageDodoUsecase from "./usecases/manageTodos";
 
@@ -20,7 +20,7 @@ export type ThunksExtraArgument = {
 
 export async function createStore(params: CreateStoreParams) {
 
-    const todoClient = createLocalStorageTodoClient();
+    const todoClient = createRestApiTodoClient();
 
     const store = configureStore({
         "reducer": usecasesToReducer(usecases),
