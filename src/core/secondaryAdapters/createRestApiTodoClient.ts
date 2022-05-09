@@ -35,11 +35,12 @@ export function createRestApiTodoClient(): TodoListClient {
 
 		},
 		"deleteTask": ({ id }) => {
-			fetch(`${url}/${id}`, { 
+			fetch(url, { 
 				"method": "DELETE",
 				"headers": {
 					"Content-Type": "application/json"
-				}
+				},
+				"body": JSON.stringify(id)
 			});
 
 			return Promise.resolve();
@@ -86,16 +87,15 @@ export function createRestApiTodoClient(): TodoListClient {
 		"deleteSelectedTasks": async () => {
 			const tasks = await todoClient.getTasks();
 			const deletedTaskIds = tasks
-				.filter(task => task.isSelected).map(({id}) => id);
+				.filter(task => task.isSelected).map(({ id }) => id);
 
 
-			deletedTaskIds.forEach(id => {
-				fetch(`${url}/${id}`, {
-					"method": "DELETE",
-					"headers": {
-						"Content-Type": "application/json"
-					}
-				});
+			await fetch(url, {
+				"method": "DELETE",
+				"headers": {
+					"Content-Type": "application/json"
+				},
+				"body": JSON.stringify(deletedTaskIds)
 			});
 
 			return tasks.filter(task => !task.isSelected);
@@ -105,7 +105,7 @@ export function createRestApiTodoClient(): TodoListClient {
 			const unSelectedTasks = (await todoClient.getTasks())
 				.filter(task => !task.isSelected)
 
-			taskFlipBooleanValue({
+			await taskFlipBooleanValue({
 				"tasks": unSelectedTasks,
 				"valueToFlip": "isSelected"
 			});
@@ -130,13 +130,14 @@ export function createRestApiTodoClient(): TodoListClient {
 
 			tasks.forEach(task => {
 				flip(task, valueToFlip);
-				fetch(url, {
-					"method": "PUT",
-					"headers": {
-						'Content-Type': 'application/json',
-					},
-					"body": JSON.stringify(task)
-				})
+			});
+
+			fetch(url, {
+				"method": "PUT",
+				"headers": {
+					'Content-Type': 'application/json',
+				},
+				"body": JSON.stringify(tasks)
 			});
 
 			return Promise.resolve();
