@@ -31,7 +31,13 @@ export function createRestApiTodoClient(): TodoListClient {
 				"body": JSON.stringify(out)
 			});
 
-			return (await todoClient.getTasks())[0];
+			return {
+				...out,
+				"id": Math.max(
+					...(await todoClient.getTasks())
+						.map(task => task.id)
+				)
+			};
 
 		},
 		"deleteTask": ({ id }) => {
@@ -85,10 +91,10 @@ export function createRestApiTodoClient(): TodoListClient {
 				})
 		},
 		"deleteSelectedTasks": async () => {
-			const tasks = await todoClient.getTasks();
-			const deletedTaskIds = tasks
-				.filter(task => task.isSelected).map(({ id }) => id);
 
+			const deletedTaskIds = (await todoClient.getTasks())
+				.filter(({ isSelected }) => isSelected)
+				.map(({ id }) => id);
 
 			await fetch(url, {
 				"method": "DELETE",
@@ -98,8 +104,9 @@ export function createRestApiTodoClient(): TodoListClient {
 				"body": JSON.stringify(deletedTaskIds)
 			});
 
-			return tasks.filter(task => !task.isSelected);
-
+			return {
+				deletedTaskIds
+			};
 		},
 		"selectAll": async () => {
 			const unSelectedTasks = (await todoClient.getTasks())

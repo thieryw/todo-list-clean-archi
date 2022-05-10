@@ -47,10 +47,6 @@ export const { reducer, actions, name } = createSlice({
 				"isSelected"
 			)
 		},
-		"tasksDeleted": (state, { payload }: PayloadAction<{ remainingTasks: Task[] }>) => {
-			const { remainingTasks } = payload;
-			state.tasks = remainingTasks;
-		},
 		"tasksCompleted": ({ tasks }) => {
 			tasks.filter(task => task.isSelected).forEach(task => {
 				task.isCompleted = true;
@@ -61,15 +57,24 @@ export const { reducer, actions, name } = createSlice({
 				task.isCompleted = false;
 			});
 		},
-		"tasksSelected": ({tasks}) => {
-			tasks.filter( task => !task.isSelected).forEach(task => {
+		"tasksSelected": ({ tasks }) => {
+			tasks.filter(task => !task.isSelected).forEach(task => {
 				task.isSelected = true;
 			})
 		},
-		"tasksUnSelected": ({tasks}) => {
-			tasks.filter( task => task.isSelected).forEach(task => {
+		"tasksUnSelected": ({ tasks }) => {
+			tasks.filter(task => task.isSelected).forEach(task => {
 				task.isSelected = false;
 			})
+		},
+		"tasksDeleted": ({ tasks }, { payload }: PayloadAction<{ deletedTaskIds: number[] }>) => {
+			const { deletedTaskIds } = payload;
+			deletedTaskIds.forEach(id => {
+				tasks.splice(
+					tasks.findIndex(task => task.id === id)
+					, 1
+				);
+			});
 		}
 
 	},
@@ -106,13 +111,11 @@ export const thunks = {
 			async (...args) => {
 				const { message } = params;
 				const [dispatch, , { todoClient }] = args;
-				await todoClient.createTask({
+				const task: Task = await todoClient.createTask({
 					message
 				});
 
-				todoClient.getTasks().then(tasks => {
-					dispatch(actions.taskCreated({ "task": tasks[tasks.length - 1] }))
-				});
+				dispatch(actions.taskCreated({ task }));
 
 			},
 	"toggleTaskCompleted":
@@ -138,8 +141,9 @@ export const thunks = {
 	"deleteSelectedTasks": (): ThunkAction =>
 		async (...args) => {
 			const [dispatch, , { todoClient }] = args;
+			const { deletedTaskIds } = await todoClient.deleteSelectedTasks();
 			dispatch(actions.tasksDeleted({
-				"remainingTasks": await todoClient.deleteSelectedTasks()
+				deletedTaskIds
 			}));
 		},
 	"completeSelectedTasks": (): ThunkAction =>
@@ -154,9 +158,9 @@ export const thunks = {
 			await todoClient.unCompleteSelectedTasks();
 			dispatch(actions.tasksUnCompleted());
 		},
-	"selectAllTasks": (): ThunkAction => 
+	"selectAllTasks": (): ThunkAction =>
 		async (...args) => {
-			const [dispatch, , {todoClient}] = args;
+			const [dispatch, , { todoClient }] = args;
 			await todoClient.selectAll();
 			dispatch(actions.tasksSelected());
 		},

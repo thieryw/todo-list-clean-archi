@@ -16,20 +16,20 @@ export function createLocalStorageTodoClient(): TodoListClient {
 		},
 		"createTask": async ({ message }) => {
 
-			const todos = await todoClient.getTasks();
+			const tasks = await todoClient.getTasks();
 
-			const todo: Task = {
-				"id": todos.length === 0 ? 0 : Math.max(...todos.map(({ id }) => id)) + 1,
+			const task: Task = {
+				"id": tasks.length === 0 ? 0 : Math.max(...tasks.map(({ id }) => id)) + 1,
 				message,
 				"isCompleted": false,
 				"isSelected": false
 			};
 
-			todos.push(todo);
+			tasks.push(task);
 
-			localStorage.setItem(localStorageKey, JSON.stringify(todos));
+			localStorage.setItem(localStorageKey, JSON.stringify(tasks));
 
-			return todo;
+			return task;
 
 		},
 		"deleteTask": async ({ id }) => {
@@ -68,11 +68,15 @@ export function createLocalStorageTodoClient(): TodoListClient {
 			})
 		},
 		"deleteSelectedTasks": async () => {
-			console.log(await todoClient.getTasks());
-			const tasks = (await todoClient.getTasks()).filter(task => !task.isSelected);
-			console.log(tasks);
-			localStorage.setItem(localStorageKey, JSON.stringify(tasks))
-			return tasks;
+			const tasks = await todoClient.getTasks();
+			localStorage.setItem(
+				localStorageKey, 
+				JSON.stringify(tasks.filter(task => !task.isSelected))
+			);
+
+			return {
+				"deletedTaskIds": tasks.filter(({isSelected}) => isSelected).map(({id})=> id)
+			}
 		},
 		"unCompleteSelectedTasks": async () => {
 			taskFlipBooleanValue({
