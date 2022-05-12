@@ -38,14 +38,15 @@ export const App = memo(
 						<input type="text" value={textValue} onChange={handleTextValueChange} />
 					</form>
 				</div>
-				<CommandBar />
-
-				<div>
-					{
-						todos.map(todo =>
-							<Task key={todo.id} {...todo} />
-						).reverse()
-					}
+				<div className={classes.commandAndTasks}>
+					<CommandBar />
+					<div className={classes.tasks}>
+						{
+							todos.map(todo =>
+								<Task key={todo.id} {...todo} />
+							).reverse()
+						}
+					</div>
 				</div>
 			</div>
 		);
@@ -61,6 +62,12 @@ const useStyles = makeStyles()({
 	},
 	"form": {
 		"marginBottom": 30
+	},
+	"commandAndTasks": {
+		"display": "flex"
+	},
+	"tasks": {
+		"marginLeft": 30
 	}
 })
 
