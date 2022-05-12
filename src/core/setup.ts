@@ -7,9 +7,9 @@ import type { TodoListClient } from "./ports/TodoListClient";
 import { usecasesToReducer } from "redux-clean-architecture";
 import { createRestApiTodoClient } from "./secondaryAdapters/createRestApiTodoClient";
 
-import * as manageDodoUsecase from "./usecases/manageTodos";
+import * as manageTodoUseCase from "./usecases/manageTodos";
 
-export const usecases = [manageDodoUsecase];
+export const usecases = [manageTodoUseCase];
 
 export type CreateStoreParams = { maxTodo: number; };
 
@@ -20,7 +20,8 @@ export type ThunksExtraArgument = {
 
 export async function createStore(params: CreateStoreParams) {
 
-    const todoClient = createRestApiTodoClient();
+    const todoClient = await createRestApiTodoClient();
+
 
     const store = configureStore({
         "reducer": usecasesToReducer(usecases),
@@ -35,7 +36,7 @@ export async function createStore(params: CreateStoreParams) {
             })
     });
 
-    await store.dispatch(manageDodoUsecase.privateThunks.initialize());
+    await store.dispatch(manageTodoUseCase.privateThunks.initialize());
 
     return store;
 }
