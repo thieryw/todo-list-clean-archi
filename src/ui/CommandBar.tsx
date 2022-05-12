@@ -20,18 +20,35 @@ export const CommandBar = memo(() => {
 	const selectAllTasks = useConstCallback(()=>{
 		manageTasksThunks.selectAllTasks();
 	});
-
 	const unSelectAllTasks = useConstCallback(()=>{
 		manageTasksThunks.unSelectAllTasks();
 	})
 
 	return <div className={classes.root}>
-
-		<button onClick={deleteSelectedTasks}>Delete Tasks</button>
-		<button onClick={completeSelectedTasks}>Complete Tasks</button>
-		<button onClick={unCompleteSelectedTasks}>Un Complete Tasks</button>
-		<button onClick={selectAllTasks}>Select all</button>
-		<button onClick={unSelectAllTasks}>Un select all</button>
+		{
+			[
+				{
+					"name": "Delete selected tasks",
+					"cb": deleteSelectedTasks
+				},
+				{
+					"name": "Complete selected tasks",
+					"cb": completeSelectedTasks
+				},
+				{
+					"name": "unComplete selected tasks",
+					"cb": unCompleteSelectedTasks
+				},
+				{
+					"name": "Select all tasks",
+					"cb": selectAllTasks
+				},
+				{
+					"name": "unSelect all tasks",
+					"cb": unSelectAllTasks
+				},
+			].map(({cb, name}) => <button key={name} className={classes.button} onClick={cb}>{name}</button>)
+		}
 	</div>
 
 });
@@ -39,6 +56,10 @@ export const CommandBar = memo(() => {
 const useStyles = makeStyles()({
 	"root": {
 		"display": "flex",
-		"marginBottom": 30
+		"marginBottom": 30,
+		"flexDirection": "column"
+	},
+	"button": {
+		"marginBottom": 10
 	}
 })
