@@ -20,12 +20,6 @@ export const { reducer, actions, name } = createSlice({
 			const { tasks } = payload;
 			return { tasks };
 		},
-		"taskDeleted": (state, { payload }: PayloadAction<{ id: number; }>) => {
-			const { id: taskId } = payload;
-
-			state.tasks = state.tasks.filter(task => task.id !== taskId);
-
-		},
 		"taskCreated": (state, { payload }: PayloadAction<{ task: Task }>) => {
 			const { task } = payload;
 			state.tasks.push({
@@ -47,34 +41,42 @@ export const { reducer, actions, name } = createSlice({
 				"isSelected"
 			)
 		},
-		"tasksCompleted": ({ tasks }) => {
-			tasks.filter(task => task.isSelected).forEach(task => {
-				task.isCompleted = true;
+		"tasksCompletedSet": ({ tasks }, { payload }: PayloadAction<{ isCompleted: boolean; allOfThem: boolean }>) => {
+			const { isCompleted, allOfThem } = payload;
+
+			tasks
+				.filter(task => {
+					if(allOfThem){
+						return task.isCompleted !== isCompleted;
+					}
+					return task.isSelected && task.isCompleted !== isCompleted;
+				})
+				.forEach(task => {
+				task.isCompleted = isCompleted;
 			});
 		},
-		"tasksUnCompleted": ({ tasks }) => {
-			tasks.filter(task => task.isSelected).forEach(task => {
-				task.isCompleted = false;
+		"tasksSelectedSet": ({ tasks }, { payload }: PayloadAction<{ isSelected: boolean }>) => {
+			const { isSelected } = payload;
+			tasks.filter(
+				task => isSelected ? !task.isSelected : task.isSelected
+			).forEach(task => {
+				task.isSelected = isSelected;
 			});
 		},
-		"tasksSelected": ({ tasks }) => {
-			tasks.filter(task => !task.isSelected).forEach(task => {
-				task.isSelected = true;
-			})
-		},
-		"tasksUnSelected": ({ tasks }) => {
-			tasks.filter(task => task.isSelected).forEach(task => {
-				task.isSelected = false;
-			})
-		},
-		"tasksDeleted": ({ tasks }, { payload }: PayloadAction<{ deletedTaskIds: number[] }>) => {
+		"tasksDeleted": (state, { payload }: PayloadAction<{ deletedTaskIds?: number[] }>) => {
 			const { deletedTaskIds } = payload;
+			const { tasks } = state;
+			if (deletedTaskIds === undefined) {
+				state.tasks = [];
+				return;
+			}
 			deletedTaskIds.forEach(id => {
 				tasks.splice(
 					tasks.findIndex(task => task.id === id)
 					, 1
 				);
 			});
+
 		}
 
 	},
@@ -103,7 +105,9 @@ export const thunks = {
 
 				const [dispatch, , { todoClient }] = args;
 				await todoClient.deleteTask({ id });
-				dispatch(actions.taskDeleted({ id }));
+				dispatch(actions.tasksDeleted({
+					"deletedTaskIds": [id]
+				}));
 
 			},
 	"createTask":
@@ -150,25 +154,44 @@ export const thunks = {
 		async (...args) => {
 			const [dispatch, , { todoClient }] = args;
 			await todoClient.completeSelectedTasks();
-			dispatch(actions.tasksCompleted());
+			dispatch(actions.tasksCompletedSet({ "isCompleted": true, "allOfThem": false }));
 		},
 	"unCompleteSelectedTasks": (): ThunkAction =>
 		async (...args) => {
 			const [dispatch, , { todoClient }] = args;
 			await todoClient.unCompleteSelectedTasks();
-			dispatch(actions.tasksUnCompleted());
+			dispatch(actions.tasksCompletedSet({ "isCompleted": false, "allOfThem": false }));
 		},
 	"selectAllTasks": (): ThunkAction =>
 		async (...args) => {
 			const [dispatch, , { todoClient }] = args;
 			await todoClient.selectAll();
-			dispatch(actions.tasksSelected());
+			dispatch(actions.tasksSelectedSet({ "isSelected": true }));
 		},
 	"unSelectAllTasks": (): ThunkAction =>
 		async (...args) => {
 			const [dispatch, , { todoClient }] = args;
 			await todoClient.unSelectAll();
-			dispatch(actions.tasksUnSelected());
+			dispatch(actions.tasksSelectedSet({ "isSelected": false }));
+		},
+	"deleteAllTasks": (): ThunkAction =>
+		async (...args) => {
+			const [dispatch, , { todoClient }] = args;
+			await todoClient.deleteAll();
+			dispatch(actions.tasksDeleted({}))
+		},
+	"completeAllTasks": (): ThunkAction =>
+		async (...args) => {
+			const [dispatch, , { todoClient }] = args;
+			await todoClient.completeAll();
+			dispatch(actions.tasksCompletedSet({ "isCompleted": true, "allOfThem": true }))
+
+		},
+	"unCompleteAllTasks": (): ThunkAction =>
+		async (...args) => {
+			const [dispatch, , { todoClient }] = args;
+			await todoClient.unCompleteAll();
+			dispatch(actions.tasksCompletedSet({ "isCompleted": false, "allOfThem": true }))
 		}
 	/*"getMaxTodo":
 		(): ThunkAction<number> =>
