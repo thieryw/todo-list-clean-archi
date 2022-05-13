@@ -132,6 +132,27 @@ export async function createRestApiTodoClient(): Promise<TodoListClient> {
 				"tasks": tasks.filter(({isSelected}) => isSelected),
 				"valueToFlip": "isSelected"
 			})
+		},
+		"deleteAll": async () => {
+			tasks = [];
+			await fetch(url, {
+				"method": "DELETE",
+				"headers": {
+					"Content-Type": "application/json"
+				}
+			})
+		},
+		"completeAll": async () => {
+			await taskFlipBooleanValue({
+				"tasks": tasks.filter(({isCompleted}) => !isCompleted),
+				"valueToFlip": "isCompleted"
+			});
+		},
+		"unCompleteAll": async () => {
+			await taskFlipBooleanValue({
+				"tasks": tasks.filter(({isCompleted}) => isCompleted),
+				"valueToFlip": "isCompleted"
+			});
 		}
 	};
 

@@ -17,6 +17,9 @@ export type TodoListClient = {
 	unCompleteSelectedTasks: () => Promise<void>;
 	selectAll: () => Promise<void>;
 	unSelectAll: () => Promise<void>;
+	deleteAll: () => Promise<void>;
+	completeAll: () => Promise<void>;
+	unCompleteAll: () => Promise<void>;
 };
 
 export function createTaskFlipBooleanValue<

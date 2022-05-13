@@ -101,12 +101,30 @@ export function createLocalStorageTodoClient(): TodoListClient {
 				,
 				"valueToFlip": "isSelected"
 			})
+		},
+		"deleteAll": () => {
+			localStorage.setItem(localStorageKey, JSON.stringify([]));
+			return Promise.resolve();
+		},
+		"completeAll": async () => {
+			await taskFlipBooleanValue({
+				"tasks": (await todoClient.getTasks())
+					.filter(task => !task.isCompleted),
+				"valueToFlip": "isCompleted"
+			});
+		},
+		"unCompleteAll": async () => {
+			await taskFlipBooleanValue({
+				"tasks": (await todoClient.getTasks())
+					.filter(task => task.isCompleted),
+				"valueToFlip": "isCompleted"
+			})
 		}
 	};
 
 	const { taskFlipBooleanValue } = createTaskFlipBooleanValue({
 		"action": ({ tasks, valueToFlip }) => {
-			if(tasks.length === 1){
+			if (tasks.length === 1) {
 				assert(tasks[0] !== undefined)
 			}
 			tasks.forEach(task => {

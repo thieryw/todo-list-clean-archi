@@ -23,6 +23,15 @@ export const CommandBar = memo(() => {
 	const unSelectAllTasks = useConstCallback(()=>{
 		manageTasksThunks.unSelectAllTasks();
 	})
+	const deleteAllTasks = useConstCallback(()=> {
+		manageTasksThunks.deleteAllTasks();
+	});
+	const completeAllTasks = useConstCallback(()=>{
+		manageTasksThunks.completeAllTasks();
+	})
+	const unCompleteAllTasks = useConstCallback(()=>{
+		manageTasksThunks.unCompleteAllTasks();
+	})
 
 	return <div className={classes.root}>
 		{
@@ -46,6 +55,18 @@ export const CommandBar = memo(() => {
 				{
 					"name": "unSelect all tasks",
 					"cb": unSelectAllTasks
+				},
+				{
+					"name": "Complete all tasks",
+					"cb": completeAllTasks
+				},
+				{
+					"name": "Un complete all tasks",
+					"cb": unCompleteAllTasks
+				},
+				{
+					"name": "Delete all tasks",
+					"cb": deleteAllTasks
 				},
 			].map(({cb, name}) => <button key={name} className={classes.button} onClick={cb}>{name}</button>)
 		}
