@@ -2,8 +2,9 @@ import type { TodoListClient, Task } from "../ports/TodoListClient";
 import { assert } from "tsafe/assert";
 import { flip } from "tsafe/flip";
 import { createTaskFlipBooleanValue } from "../ports/TodoListClient";
+import * as runEx from "run-exclusive";
 
-const url = "http://williamthiery99.ddns.net";
+const url = "http://williamthiery007.ddns.net";
 
 
 async function getTasks(): Promise<{tasks: Task[]}>{
@@ -20,13 +21,15 @@ export async function createRestApiTodoClient(): Promise<TodoListClient> {
 
 	let { tasks } = await getTasks();
 
+	const groupTaskFunctions = runEx.createGroupRef();
+
 	const todoClient: TodoListClient = {
 		"getTasks": async () => {
 
 			return (await getTasks()).tasks;
 
 		},
-		"createTask": async ({ message }) => {
+		"createTask": runEx.build(groupTaskFunctions, async ({ message }) => {
 
 
 			const out: Omit<Task, "id"> = {
@@ -34,11 +37,6 @@ export async function createRestApiTodoClient(): Promise<TodoListClient> {
 				"isCompleted": false,
 				"isSelected": false
 			};
-
-			tasks.push({
-				...out,
-				"id": tasks.length === 0 ? 0 : Math.max(...tasks.map(task => task.id)) + 1
-			});
 
 			await fetch(url, {
 				"method": "POST",
@@ -48,10 +46,15 @@ export async function createRestApiTodoClient(): Promise<TodoListClient> {
 				"body": JSON.stringify(out)
 			});
 
+			tasks.push({
+				...out,
+				"id": tasks.length === 0 ? 0 : Math.max(...tasks.map(task => task.id)) + 1
+			});
+
 			return tasks[tasks.length - 1];
 
-		},
-		"deleteTask": async ({ id }) => {
+		}),
+		"deleteTask": runEx.build(groupTaskFunctions, async ({ id }) => {
 			tasks.splice(tasks.findIndex(task => task.id === id), 1);
 			await fetch(url, {
 				"method": "DELETE",
@@ -62,8 +65,8 @@ export async function createRestApiTodoClient(): Promise<TodoListClient> {
 			});
 
 			return Promise.resolve();
-		},
-		"toggleTaskCompleted": async ({ id }) => {
+		}),
+		"toggleTaskCompleted": runEx.build(groupTaskFunctions, async ({ id }) => {
 
 			await taskFlipBooleanValue({
 				"tasks": [
@@ -73,8 +76,8 @@ export async function createRestApiTodoClient(): Promise<TodoListClient> {
 				"valueToFlip": "isCompleted"
 			});
 
-		},
-		"toggleTaskSelected": async ({ id }) => {
+		}),
+		"toggleTaskSelected": runEx.build(groupTaskFunctions, async ({ id }) => {
 			await taskFlipBooleanValue({
 				"tasks": [
 					tasks
@@ -82,24 +85,24 @@ export async function createRestApiTodoClient(): Promise<TodoListClient> {
 				],
 				"valueToFlip": "isSelected"
 			});
-		},
-		"completeSelectedTasks": async () => {
+		}),
+		"completeSelectedTasks": runEx.build(groupTaskFunctions, async () => {
 
 			await taskFlipBooleanValue({
 				"tasks": tasks
 					.filter(task => task.isSelected && !task.isCompleted),
 				"valueToFlip": "isCompleted"
 			})
-		},
-		"unCompleteSelectedTasks": async () => {
+		}),
+		"unCompleteSelectedTasks": runEx.build(groupTaskFunctions, async () => {
 
 			await taskFlipBooleanValue({
 				"tasks": tasks
 					.filter(task => task.isSelected && task.isCompleted),
 				"valueToFlip": "isCompleted"
 			})
-		},
-		"deleteSelectedTasks": async () => {
+		}),
+		"deleteSelectedTasks": runEx.build(groupTaskFunctions, async () => {
 
 			const deletedTaskIds = tasks
 				.filter(({ isSelected }) => isSelected)
@@ -118,22 +121,22 @@ export async function createRestApiTodoClient(): Promise<TodoListClient> {
 			return {
 				deletedTaskIds
 			};
-		},
-		"selectAll": async () => {
+		}),
+		"selectAll": runEx.build(groupTaskFunctions, async () => {
 
 			await taskFlipBooleanValue({
 				"tasks": tasks.filter(({isSelected}) => !isSelected),
 				"valueToFlip": "isSelected"
 			});
-		},
-		"unSelectAll": async () => {
+		}),
+		"unSelectAll": runEx.build(async () => {
 
 			await taskFlipBooleanValue({
 				"tasks": tasks.filter(({isSelected}) => isSelected),
 				"valueToFlip": "isSelected"
 			})
-		},
-		"deleteAll": async () => {
+		}),
+		"deleteAll": runEx.build(groupTaskFunctions, async () => {
 			tasks = [];
 			await fetch(url, {
 				"method": "DELETE",
@@ -141,19 +144,19 @@ export async function createRestApiTodoClient(): Promise<TodoListClient> {
 					"Content-Type": "application/json"
 				}
 			})
-		},
-		"completeAll": async () => {
+		}),
+		"completeAll": runEx.build(groupTaskFunctions, async () => {
 			await taskFlipBooleanValue({
 				"tasks": tasks.filter(({isCompleted}) => !isCompleted),
 				"valueToFlip": "isCompleted"
 			});
-		},
-		"unCompleteAll": async () => {
+		}),
+		"unCompleteAll": runEx.build(groupTaskFunctions, async () => {
 			await taskFlipBooleanValue({
 				"tasks": tasks.filter(({isCompleted}) => isCompleted),
 				"valueToFlip": "isCompleted"
 			});
-		}
+		})
 	};
 
 
