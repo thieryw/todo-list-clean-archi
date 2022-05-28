@@ -43,8 +43,8 @@ export const App = memo(
 					<CommandBar />
 					<div className={classes.tasks}>
 						{
-							todos.map(todo =>
-								<Task key={todo.id} {...todo} />
+							tasks.map(task =>
+								<Task key={task.id} {...task} />
 							).reverse()
 						}
 					</div>
