@@ -2,13 +2,10 @@ import type { TodoListClient, Task } from "../ports/TodoListClient";
 import { assert } from "tsafe/assert";
 import { flip } from "tsafe/flip";
 import { createTaskFlipBooleanValue } from "../ports/TodoListClient";
-import * as runEx from "run-exclusive";
 
 const localStorageKey = "todos";
 
 export function createLocalStorageTodoClient(): TodoListClient {
-
-	const groupTaskFunctions = runEx.createGroupRef();
 
 	const todoClient: TodoListClient = {
 		"getTasks": () => {
@@ -17,7 +14,7 @@ export function createLocalStorageTodoClient(): TodoListClient {
 			return Promise.resolve(todosJson === null ? [] : JSON.parse(todosJson));
 
 		},
-		"createTask": runEx.build(groupTaskFunctions, async ({ message }) => {
+		"createTask": async ({ message }) => {
 
 			const tasks = await todoClient.getTasks();
 
@@ -34,15 +31,15 @@ export function createLocalStorageTodoClient(): TodoListClient {
 
 			return task;
 
-		}),
-		"deleteTask": runEx.build(groupTaskFunctions, async ({ id }) => {
+		},
+		"deleteTask": async ({ id }) => {
 
 			const todos = await todoClient.getTasks();
 			const todosWithoutDeletedTodo = todos.filter(todo => todo.id !== id);
 			localStorage.setItem(localStorageKey, JSON.stringify(todosWithoutDeletedTodo));
 
-		}),
-		"toggleTaskCompleted": runEx.build(groupTaskFunctions, async ({ id }) => {
+		},
+		"toggleTaskCompleted": async ({ id }) => {
 			taskFlipBooleanValue({
 				"tasks": [
 					(await todoClient.getTasks())
@@ -51,8 +48,8 @@ export function createLocalStorageTodoClient(): TodoListClient {
 				"valueToFlip": "isCompleted"
 			});
 
-		}),
-		"toggleTaskSelected": runEx.build(groupTaskFunctions, async ({ id }) => {
+		},
+		"toggleTaskSelected": async ({ id }) => {
 			taskFlipBooleanValue({
 				"tasks": [
 					(await todoClient.getTasks())
@@ -61,16 +58,16 @@ export function createLocalStorageTodoClient(): TodoListClient {
 				"valueToFlip": "isSelected"
 			});
 
-		}),
-		"completeSelectedTasks": runEx.build(groupTaskFunctions, async () => {
+		},
+		"completeSelectedTasks": async () => {
 			taskFlipBooleanValue({
 				"tasks": (await todoClient.getTasks())
 					.filter(({isCompleted, isSelected}) => isSelected && !isCompleted)
 				,
 				"valueToFlip": "isCompleted"
 			})
-		}),
-		"deleteSelectedTasks": runEx.build(groupTaskFunctions, async () => {
+		},
+		"deleteSelectedTasks": async () => {
 			const tasks = await todoClient.getTasks();
 			localStorage.setItem(
 				localStorageKey, 
@@ -80,49 +77,49 @@ export function createLocalStorageTodoClient(): TodoListClient {
 			return {
 				"deletedTaskIds": tasks.filter(({isSelected}) => isSelected).map(({id})=> id)
 			}
-		}),
-		"unCompleteSelectedTasks": runEx.build(groupTaskFunctions, async () => {
+		},
+		"unCompleteSelectedTasks": async () => {
 			taskFlipBooleanValue({
 				"tasks": (await todoClient.getTasks())
 					.filter(({isCompleted, isSelected}) => isCompleted && isSelected)
 				,
 				"valueToFlip": "isCompleted"
 			})
-		}),
-		"selectAll": runEx.build(groupTaskFunctions, async () => {
+		},
+		"selectAll": async () => {
 			taskFlipBooleanValue({
 				"tasks": (await todoClient.getTasks())
 					.filter(task => !task.isSelected)
 				,
 				"valueToFlip": "isSelected"
 			})
-		}),
-		"unSelectAll": runEx.build(groupTaskFunctions, async () => {
+		},
+		"unSelectAll": async () => {
 			taskFlipBooleanValue({
 				"tasks": (await todoClient.getTasks())
 					.filter(task => task.isSelected)
 				,
 				"valueToFlip": "isSelected"
 			})
-		}),
-		"deleteAll": runEx.build(groupTaskFunctions, () => {
+		},
+		"deleteAll": () => {
 			localStorage.setItem(localStorageKey, JSON.stringify([]));
 			return Promise.resolve();
-		}),
-		"completeAll": runEx.build(groupTaskFunctions, async () => {
+		},
+		"completeAll": async () => {
 			await taskFlipBooleanValue({
 				"tasks": (await todoClient.getTasks())
 					.filter(task => !task.isCompleted),
 				"valueToFlip": "isCompleted"
 			});
-		}),
-		"unCompleteAll": runEx.build(groupTaskFunctions, async () => {
+		},
+		"unCompleteAll": async () => {
 			await taskFlipBooleanValue({
 				"tasks": (await todoClient.getTasks())
 					.filter(task => task.isCompleted),
 				"valueToFlip": "isCompleted"
 			})
-		})
+		}
 	};
 
 	const { taskFlipBooleanValue } = createTaskFlipBooleanValue({

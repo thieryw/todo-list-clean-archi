@@ -10,7 +10,8 @@ export const App = memo(
 
 		const [textValue, setTextValue] = useState("");
 
-		const todos = useSelector(state => state.manageTasks.tasks);
+		const { tasks, isLocked } = useSelector(state => state.manageTasks);
+
 
 		const { manageTasksThunks } = useThunks();
 

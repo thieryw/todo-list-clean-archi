@@ -10,28 +10,35 @@ import { id } from "tsafe/id";
 
 export type ManageTodosState = {
 	tasks: Task[];
+	isLocked: boolean;
 };
 
 export const { reducer, actions, name } = createSlice({
 	"name": "manageTasks",
-	"initialState": id<ManageTodosState>({ "tasks": [] }),
+	"initialState": id<ManageTodosState>({ "tasks": [], "isLocked": false }),
 	"reducers": {
 		"initialized": (_state, { payload }: PayloadAction<{ tasks: Task[]; }>) => {
 			const { tasks } = payload;
-			return { tasks };
+			return { 
+				tasks,
+				"isLocked": false
+			};
+		},
+		"taskCreationStarted": (state)=>{
+			state.isLocked=true;
 		},
 		"taskCreated": (state, { payload }: PayloadAction<{ task: Task }>) => {
 			const { task } = payload;
 			state.tasks.push({
 				...task
-			})
+			});
+
 		},
 		"taskCompletedToggled": (state, { payload }: PayloadAction<{ id: number }>) => {
+
 			const { id: taskId } = payload;
-
 			const index = state.tasks.findIndex(({ id }) => taskId === id);
-
-			flip(state.tasks[index], "isCompleted")
+			flip(state.tasks[index], "isCompleted");
 
 		},
 		"taskSelectedToggled": (state, { payload }: PayloadAction<{ id: number }>) => {
@@ -115,6 +122,7 @@ export const thunks = {
 			async (...args) => {
 				const { message } = params;
 				const [dispatch, , { todoClient }] = args;
+				
 				const task: Task = await todoClient.createTask({
 					message
 				});

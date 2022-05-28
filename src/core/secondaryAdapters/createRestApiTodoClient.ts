@@ -2,37 +2,27 @@ import type { TodoListClient, Task } from "../ports/TodoListClient";
 import { assert } from "tsafe/assert";
 import { flip } from "tsafe/flip";
 import { createTaskFlipBooleanValue } from "../ports/TodoListClient";
-import * as runEx from "run-exclusive";
 
 const url = "http://williamthiery007.ddns.net";
 
 
-async function getTasks(): Promise<{tasks: Task[]}>{
-
-	return {
-		"tasks": await fetch(url, {
-			"method": "GET"
-		}).then(res => res.json())
-	}
-
-}
 
 export async function createRestApiTodoClient(): Promise<TodoListClient> {
 
-	let { tasks } = await getTasks();
 
-	const groupTaskFunctions = runEx.createGroupRef();
 
 	const todoClient: TodoListClient = {
 		"getTasks": async () => {
 
-			return (await getTasks()).tasks;
+			return await fetch(url, {
+				"method": "GET"
+			}).then(res => res.json());
 
 		},
-		"createTask": runEx.build(groupTaskFunctions, async ({ message }) => {
+		"createTask": async ({ message }) => {
 
 
-			const out: Omit<Task, "id"> = {
+			const post: Omit<Task, "id"> = {
 				message,
 				"isCompleted": false,
 				"isSelected": false
@@ -43,19 +33,15 @@ export async function createRestApiTodoClient(): Promise<TodoListClient> {
 				"headers": {
 					"Content-Type": "application/json"
 				},
-				"body": JSON.stringify(out)
+				"body": JSON.stringify(post)
 			});
 
-			tasks.push({
-				...out,
-				"id": tasks.length === 0 ? 0 : Math.max(...tasks.map(task => task.id)) + 1
-			});
+			const tasks = await todoClient.getTasks();
 
 			return tasks[tasks.length - 1];
 
-		}),
-		"deleteTask": runEx.build(groupTaskFunctions, async ({ id }) => {
-			tasks.splice(tasks.findIndex(task => task.id === id), 1);
+		},
+		"deleteTask": async ({ id }) => {
 			await fetch(url, {
 				"method": "DELETE",
 				"headers": {
@@ -65,50 +51,48 @@ export async function createRestApiTodoClient(): Promise<TodoListClient> {
 			});
 
 			return Promise.resolve();
-		}),
-		"toggleTaskCompleted": runEx.build(groupTaskFunctions, async ({ id }) => {
+		},
+		"toggleTaskCompleted": async ({ id }) => {
 
 			await taskFlipBooleanValue({
 				"tasks": [
-					tasks
+					(await todoClient.getTasks())
 						.find(task => task.id === id) as Task
 				],
 				"valueToFlip": "isCompleted"
 			});
 
-		}),
-		"toggleTaskSelected": runEx.build(groupTaskFunctions, async ({ id }) => {
+		},
+		"toggleTaskSelected": async ({ id }) => {
 			await taskFlipBooleanValue({
 				"tasks": [
-					tasks
+					(await todoClient.getTasks())
 						.find(task => task.id === id) as Task
 				],
 				"valueToFlip": "isSelected"
 			});
-		}),
-		"completeSelectedTasks": runEx.build(groupTaskFunctions, async () => {
+		},
+		"completeSelectedTasks": async () => {
 
 			await taskFlipBooleanValue({
-				"tasks": tasks
+				"tasks": (await todoClient.getTasks())
 					.filter(task => task.isSelected && !task.isCompleted),
 				"valueToFlip": "isCompleted"
 			})
-		}),
-		"unCompleteSelectedTasks": runEx.build(groupTaskFunctions, async () => {
+		},
+		"unCompleteSelectedTasks": async () => {
 
 			await taskFlipBooleanValue({
-				"tasks": tasks
+				"tasks": (await todoClient.getTasks())
 					.filter(task => task.isSelected && task.isCompleted),
 				"valueToFlip": "isCompleted"
 			})
-		}),
-		"deleteSelectedTasks": runEx.build(groupTaskFunctions, async () => {
+		},
+		"deleteSelectedTasks": async () => {
 
-			const deletedTaskIds = tasks
+			const deletedTaskIds = (await todoClient.getTasks())
 				.filter(({ isSelected }) => isSelected)
 				.map(({ id }) => id);
-
-			tasks = tasks.filter(({isSelected}) => !isSelected);
 
 			await fetch(url, {
 				"method": "DELETE",
@@ -121,42 +105,45 @@ export async function createRestApiTodoClient(): Promise<TodoListClient> {
 			return {
 				deletedTaskIds
 			};
-		}),
-		"selectAll": runEx.build(groupTaskFunctions, async () => {
+		},
+		"selectAll": async () => {
 
 			await taskFlipBooleanValue({
-				"tasks": tasks.filter(({isSelected}) => !isSelected),
+				"tasks": (await todoClient.getTasks())
+					.filter(({isSelected}) => !isSelected),
 				"valueToFlip": "isSelected"
 			});
-		}),
-		"unSelectAll": runEx.build(async () => {
+		},
+		"unSelectAll": async () => {
 
 			await taskFlipBooleanValue({
-				"tasks": tasks.filter(({isSelected}) => isSelected),
+				"tasks": (await todoClient.getTasks())
+					.filter(({isSelected}) => isSelected),
 				"valueToFlip": "isSelected"
 			})
-		}),
-		"deleteAll": runEx.build(groupTaskFunctions, async () => {
-			tasks = [];
+		},
+		"deleteAll": async () => {
 			await fetch(url, {
 				"method": "DELETE",
 				"headers": {
 					"Content-Type": "application/json"
 				}
 			})
-		}),
-		"completeAll": runEx.build(groupTaskFunctions, async () => {
+		},
+		"completeAll": async () => {
 			await taskFlipBooleanValue({
-				"tasks": tasks.filter(({isCompleted}) => !isCompleted),
+				"tasks": (await todoClient.getTasks())
+					.filter(({isCompleted}) => !isCompleted),
 				"valueToFlip": "isCompleted"
 			});
-		}),
-		"unCompleteAll": runEx.build(groupTaskFunctions, async () => {
+		},
+		"unCompleteAll": async () => {
 			await taskFlipBooleanValue({
-				"tasks": tasks.filter(({isCompleted}) => isCompleted),
+				"tasks": (await todoClient.getTasks())
+					.filter(({isCompleted}) => isCompleted),
 				"valueToFlip": "isCompleted"
 			});
-		})
+		}
 	};
 
 
