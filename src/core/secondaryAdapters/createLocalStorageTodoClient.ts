@@ -1,7 +1,6 @@
 import type { TodoListClient, Task } from "../ports/TodoListClient";
-import { assert } from "tsafe/assert";
 import { flip } from "tsafe/flip";
-import { createTaskFlipBooleanValue } from "../ports/TodoListClient";
+import type { TaskFlipBooleanValue } from "../ports/TodoListClient";
 
 const localStorageKey = "todos";
 
@@ -122,19 +121,15 @@ export function createLocalStorageTodoClient(): TodoListClient {
 		}
 	};
 
-	const { taskFlipBooleanValue } = createTaskFlipBooleanValue({
-		"action": ({ tasks, valueToFlip }) => {
-			if (tasks.length === 1) {
-				assert(tasks[0] !== undefined)
-			}
+
+	const taskFlipBooleanValue: TaskFlipBooleanValue = ({ tasks, valueToFlip }) => {
 			tasks.forEach(task => {
 				flip(task, valueToFlip);
 			});
 
 			localStorage.setItem(localStorageKey, JSON.stringify(tasks));
 			return Promise.resolve();
-		}
-	})
+	}
 
 	return todoClient;
 

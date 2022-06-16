@@ -22,18 +22,11 @@ export type TodoListClient = {
 	unCompleteAll: () => Promise<void>;
 };
 
-export function createTaskFlipBooleanValue<
-	T extends {
-		tasks: Task[];
-		valueToFlip: {
-			[Key in keyof Task]: Task[Key] extends boolean ? Key : never
-		}[keyof Task]
-	}
->(params: {
-	action: (params: T)=> Promise<void>;
-}): {taskFlipBooleanValue: (params: T) => Promise<void>} {
-	const { action: taskFlipBooleanValue } = params;
 
-	return { taskFlipBooleanValue };
+export type TaskFlipBooleanValue = (params: {
+	tasks: Task[];
+	valueToFlip: {
+		[Key in keyof Task]: Task[Key] extends boolean ? Key : never
+	}[keyof Task]
 
-};
+}) => Promise<void>;
